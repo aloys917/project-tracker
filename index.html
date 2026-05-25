@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>亮创集团任职资格 & 岗位价值评估 项目管理看板</title>
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-light: #e8f0fe;
+    --success: #0a9a5a;
+    --success-light: #d1fae5;
+    --warning: #e57c00;
+    --warning-light: #fff3cd;
+    --danger: #e02020;
+    --danger-light: #fde8e8;
+    --gray: #6b7280;
+    --gray-light: #f3f4f6;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-sm: #6b7280;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f4ff; color: var(--text); }
+
+  .header { background: linear-gradient(135deg, #1a56db, #0e3fad); color: #fff; padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+  .header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 3px; }
+  .header .stats { display: flex; gap: 20px; }
+  .stat-pill { background: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 14px; text-align: center; }
+  .stat-pill .num { font-size: 22px; font-weight: 700; }
+  .stat-pill .lbl { font-size: 11px; opacity: 0.9; }
+
+  .controls { background: #fff; border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .btn-group { display: flex; gap: 0; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .btn-group button { padding: 6px 16px; border: none; background: #fff; cursor: pointer; font-size: 13px; color: var(--text); transition: all .15s; }
+  .btn-group button.active { background: var(--primary); color: #fff; }
+  .filter-wrap { display: flex; align-items: center; gap: 8px; }
+  .filter-wrap label { font-size: 13px; color: var(--text-sm); }
+  .filter-wrap select { border: 1.5px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 13px; background: #fff; }
+  .search-box { border: 1.5px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 13px; width: 170px; }
+  .last-updated { margin-left: auto; font-size: 12px; color: var(--text-sm); }
+
+  .summary-section { padding: 18px 28px 0; display: flex; gap: 14px; flex-wrap: wrap; }
+  .summary-card { background: #fff; border-radius: var(--radius); padding: 14px 20px; flex: 1; min-width: 170px; box-shadow: var(--shadow); border-left: 4px solid transparent; }
+  .summary-card.total { border-color: var(--primary); }
+  .summary-card.done { border-color: var(--success); }
+  .summary-card.inprog { border-color: var(--warning); }
+  .summary-card.overdue { border-color: var(--danger); }
+  .summary-card.jun { border-color: #8b5cf6; }
+  .summary-card .s-num { font-size: 28px; font-weight: 800; }
+  .summary-card.total .s-num { color: var(--primary); }
+  .summary-card.done .s-num { color: var(--success); }
+  .summary-card.inprog .s-num { color: var(--warning); }
+  .summary-card.overdue .s-num { color: var(--danger); }
+  .summary-card.jun .s-num { color: #8b5cf6; }
+  .summary-card .s-label { font-size: 12px; color: var(--text-sm); margin-top: 2px; }
+  .progress-bar-outer { height: 6px; background: #e9ecef; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .progress-bar-inner { height: 100%; border-radius: 3px; transition: width .5s; }
+
+  .main { padding: 16px 28px 32px; }
+
+  /* List view - merged header */
+  .list-table { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .list-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .list-table th { background: #e8edf5; padding: 8px 10px; text-align: left; font-weight: 600; color: #3b4a6b; border-right: 1px solid var(--border); font-size: 12px; }
+  .list-table td { padding: 8px 10px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .list-table th.group-header { background: #dce4f5; text-align: center; font-size: 13px; }
+  .list-table .row:hover { background: #f8faff; }
+  .list-table .row:last-child td { border-bottom: none; }
+
+  /* Merged header rows */
+  .th-top { border-bottom: 2px solid var(--primary); }
+  .th-sub { font-weight: 500; font-size: 11px; color: #6b7280; }
+
+  /* Status dots in kanban */
+  .status-dots { display: flex; gap: 4px; margin-top: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot-done { background: #10b981; }
+  .dot-progress { background: #60a5fa; }
+  .dot-todo { background: #d1d5db; }
+  .dot-overdue { background: #ef4444; animation: pulse 1.5s infinite; }
+
+  /* Gantt chart - weekly */
+  .gantt-wrap { overflow-x: auto; }
+  .gantt-grid { min-width: 1000px; }
+  .gantt-month-header { display: flex; border-bottom: 2px solid var(--border); background: #e8edf5; }
+  .gantt-month-cell { flex: 1; text-align: center; font-size: 12px; font-weight: 700; padding: 6px 0; color: var(--primary); border-right: 1px solid var(--border); }
+  .gantt-week-header { display: flex; border-bottom: 1px solid var(--border); background: #f1f5fe; }
+  .gantt-week-cell { flex: 1; text-align: center; font-size: 10px; padding: 3px 0; color: #6b7280; border-right: 1px solid var(--border); }
+  .gantt-row { display: flex; align-items: center; border-bottom: 1px solid var(--border); min-height: 32px; }
+  .gantt-label { width: 200px; min-width: 200px; font-size: 12px; padding: 0 10px; font-weight: 600; border-right: 1px solid var(--border); }
+  .gantt-bars { flex: 1; position: relative; height: 32px; display: flex; align-items: center; }
+  .gantt-sub-row { display: flex; align-items: center; border-bottom: 1px solid #f0f0f0; min-height: 22px; }
+  .gantt-sub-label { width: 200px; min-width: 200px; font-size: 11px; padding: 0 10px; color: #6b7280; border-right: 1px solid var(--border); }
+  .gantt-sub-bars { flex: 1; position: relative; height: 22px; }
+
+  .gantt-bar { position: absolute; height: 14px; border-radius: 3px; display: flex; align-items: center; padding-left: 4px; font-size: 9px; color: #fff; white-space: nowrap; overflow: hidden; }
+  .gantt-bar-sm { height: 10px; font-size: 8px; }
+
+  .toggle-btn { cursor: pointer; user-select: none; margin-right: 6px; font-size: 12px; }
+  .sub-rows { display: none; }
+  .sub-rows.open { display: block; }
+
+  /* Badges */
+  .badge { display: inline-block; border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+  .badge-done { background: var(--success-light); color: var(--success); }
+  .badge-partial { background: #dbeafe; color: #1e40af; }
+  .badge-todo { background: var(--warning-light); color: var(--warning); }
+  .badge-overdue { background: var(--danger-light); color: var(--danger); animation: pulse 1.5s infinite; }
+  .badge-template { background: #ede9fe; color: #5b21b6; }
+
+  .month-badge { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+  .month-may { background: #fef3c7; color: #92400e; }
+  .month-jun { background: #d1fae5; color: #065f46; }
+  .month-overdue { background: #fde8e8; color: #991b1b; }
+
+  .btn-edit { background: none; border: 1px solid var(--border); border-radius: 5px; padding: 2px 8px; font-size: 11px; cursor: pointer; color: var(--primary); }
+  .btn-edit:hover { background: var(--primary-light); }
+
+  .tag { display: inline-block; border-radius: 4px; padding: 1px 6px; font-size: 11px; background: #f3f4f6; color: #374151; margin-right: 3px; }
+
+  .deadline { font-size: 12px; font-weight: 600; }
+  .deadline.red { color: var(--danger); }
+  .deadline.orange { color: var(--warning); }
+  .deadline.green { color: var(--success); }
+
+  /* Kanban */
+  .kanban-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kanban-col { background: var(--gray-light); border-radius: var(--radius); padding: 12px; }
+  .kanban-col-header { font-size: 13px; font-weight: 700; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .kanban-count { background: #fff; border-radius: 10px; padding: 1px 8px; font-size: 12px; }
+  .kanban-card { background: #fff; border-radius: 8px; padding: 11px 12px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: default; transition: transform .15s, box-shadow .15s; border-left: 3px solid transparent; }
+  .kanban-card:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+  .kanban-card.domestic { border-color: #60a5fa; }
+  .kanban-card.overseas { border-color: #f59e0b; }
+  .kanban-card .card-title { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+  .kanban-card .card-meta { font-size: 11px; color: var(--text-sm); display: flex; justify-content: space-between; }
+  .status-dots { display: flex; gap: 3px; margin-top: 5px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border); }
+  .tab { padding: 9px 20px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; font-weight: 500; color: var(--text-sm); transition: all .15s; }
+  .tab.active { border-color: var(--primary); color: var(--primary); font-weight: 700; }
+
+  .view-content { display: none; }
+  .view-content.active { display: block; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 14px; padding: 28px; width: 520px; max-width: 90vw; box-shadow: 0 8px 40px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--text-sm); }
+  .form-group select, .form-group input, .form-group textarea { width: 100%; border: 1.5px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13px; }
+  .form-group textarea { height: 80px; resize: vertical; }
+  .form-group .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  .btn-primary { background: var(--primary); color: #fff; border: none; border-radius: 7px; padding: 8px 20px; font-size: 13px; cursor: pointer; font-weight: 600; }
+  .btn-secondary { background: var(--gray-light); color: var(--text); border: none; border-radius: 7px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+
+  .group-header-bar { background: #f1f5fe; padding: 8px 10px; font-size: 12px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+  @media (max-width: 900px) {
+    .kanban-board { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🦞 亮创集团 · 任职资格 & 岗位价值评估 项目推进看板</h1>
+    <div class="subtitle">2026年 · 6项子任务精细追踪 · 实时进度看板</div>
+  </div>
+  <div class="stats">
+    <div class="stat-pill">
+      <div class="num" id="header-total">-</div>
+      <div class="lbl">总子任务</div>
+    </div>
+    <div class="stat-pill" style="background:rgba(255,200,100,0.3)">
+      <div class="num" id="header-pending">-</div>
+      <div class="lbl">待完成</div>
+    </div>
+    <div class="stat-pill" style="background:rgba(255,120,120,0.3)">
+      <div class="num" id="header-overdue">0</div>
+      <div class="lbl">⚠ 逾期</div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="btn-group">
+    <button class="active" onclick="switchView('list')">📋 列表视图</button>
+    <button onclick="switchView('kanban')">🗂 看板视图</button>
+    <button onclick="switchView('gantt')">📅 甘特图</button>
+  </div>
+  <div class="filter-wrap">
+    <label>区域</label>
+    <select id="filter-region" onchange="applyFilters()">
+      <option value="">全部</option>
+      <option value="国内">国内</option>
+      <option value="海外">海外</option>
+      <option value="职能">职能</option>
+    </select>
+  </div>
+  <div class="filter-wrap">
+    <label>截止月份</label>
+    <select id="filter-month" onchange="applyFilters()">
+      <option value="">全部</option>
+      <option value="4月(逾期)">4月（逾期）</option>
+      <option value="5月">5月</option>
+      <option value="6月">6月</option>
+      <option value="长期">长期/无截止</option>
+    </select>
+  </div>
+  <div class="filter-wrap">
+    <label>状态</label>
+    <select id="filter-status" onchange="applyFilters()">
+      <option value="">全部</option>
+      <option value="全部完成">全部完成</option>
+      <option value="进行中">进行中</option>
+      <option value="待启动">待启动</option>
+      <option value="逾期">逾期</option>
+    </select>
+  </div>
+  <input class="search-box" id="search-box" placeholder="🔍 搜索项目/负责人..." oninput="applyFilters()">
+  <div class="last-updated" style="display:flex;align-items:center;gap:10px;margin-left:auto">
+    <span id="update-time"></span>
+    <button class="btn-edit" onclick="downloadHTML()" title="下载包含最新数据的HTML文件">💾 保存到文件</button>
+    <button class="btn-edit" onclick="resetData()" title="清除本地修改，恢复文件原始数据" style="color:#e02020;border-color:#fde8e8">🔄 重置</button>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="summary-section">
+  <div class="summary-card total">
+    <div class="s-num" id="s-total">-</div>
+    <div class="s-label">项目总数</div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="p-total" style="background:#1a56db;width:100%"></div></div>
+  </div>
+  <div class="summary-card done">
+    <div class="s-num" id="s-done">-</div>
+    <div class="s-label">子任务已完成</div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="p-done" style="background:#0a9a5a"></div></div>
+  </div>
+  <div class="summary-card inprog">
+    <div class="s-num" id="s-inprog">-</div>
+    <div class="s-label">5月截止待完成</div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="p-inprog" style="background:#e57c00"></div></div>
+  </div>
+  <div class="summary-card overdue">
+    <div class="s-num" id="s-overdue">-</div>
+    <div class="s-label">逾期/紧急</div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="p-overdue" style="background:#e02020"></div></div>
+  </div>
+  <div class="summary-card jun">
+    <div class="s-num" style="color:#8b5cf6" id="s-jun">-</div>
+    <div class="s-label">6月截止项目</div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="p-jun" style="background:#8b5cf6"></div></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('all')">全部项目</div>
+    <div class="tab" onclick="switchTab('may')">⏰ 5月截止</div>
+    <div class="tab" onclick="switchTab('jun')">📌 6月截止</div>
+    <div class="tab" onclick="switchTab('overdue')">🔴 逾期预警</div>
+  </div>
+
+  <!-- List View -->
+  <div id="view-list" class="view-content active">
+    <div class="list-table" id="list-body"></div>
+  </div>
+
+  <!-- Kanban View -->
+  <div id="view-kanban" class="view-content">
+    <div class="kanban-board" id="kanban-board"></div>
+  </div>
+
+  <!-- Gantt View -->
+  <div id="view-gantt" class="view-content">
+    <div class="gantt-wrap">
+      <div class="gantt-grid" id="gantt-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>✏️ 编辑项目进度（6项子任务）</h3>
+    <input type="hidden" id="edit-id">
+    <div class="form-group">
+      <label>公司/项目名称</label>
+      <input type="text" id="edit-name" readonly style="background:#f9fafb">
+    </div>
+    <div class="form-group">
+      <label>任职资格</label>
+      <div class="field-group">
+        <div>
+          <label style="font-size:11px;font-weight:500">① 职业通道</label>
+          <select id="edit-zrz1">
+            <option value="已完成">✅ 已完成</option>
+            <option value="进行中">🔄 进行中</option>
+            <option value="待启动">⏳ 待启动</option>
+            <option value="逾期">🔴 逾期</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500">② 任职资格标准</label>
+          <select id="edit-zrz2">
+            <option value="已完成">✅ 已完成</option>
+            <option value="进行中">🔄 进行中</option>
+            <option value="待启动">⏳ 待启动</option>
+            <option value="逾期">🔴 逾期</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500">③ 认证</label>
+          <select id="edit-zrz3">
+            <option value="已完成">✅ 已完成</option>
+            <option value="进行中">🔄 进行中</option>
+            <option value="待启动">⏳ 待启动</option>
+            <option value="逾期">🔴 逾期</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>岗位价值评估</label>
+      <div class="field-group">
+        <div>
+          <label style="font-size:11px;font-weight:500">① 岗位族划分</label>
+          <select id="edit-jwe1">
+            <option value="已完成">✅ 已完成</option>
+            <option value="进行中">🔄 进行中</option>
+            <option value="待启动">⏳ 待启动</option>
+            <option value="逾期">🔴 逾期</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500">② 价值评估</label>
+          <select id="edit-jwe2">
+            <option value="已完成">✅ 已完成</option>
+            <option value="进行中">🔄 进行中</option>
+            <option value="待启动">⏳ 待启动</option>
+            <option value="逾期">🔴 逾期</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500">③ 系数表</label>
+          <select id="edit-jwe3">
+            <option value="已完成">✅ 已完成</option>
+            <option value="进行中">🔄 进行中</option>
+            <option value="待启动">⏳ 待启动</option>
+            <option value="逾期">🔴 逾期</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>负责人</label>
+      <input type="text" id="edit-owner">
+    </div>
+    <div class="form-group">
+      <label>备注/最新进展</label>
+      <textarea id="edit-note" placeholder="输入最新进展、阻塞原因等..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="saveEdit()">保存更新</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== 数据（6字段结构）=====================
+const rawData = [
+  // 国内
+  { id:1, region:'国内', company:'总部',       zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'/', deadline:null, note:'' },
+  { id:2, region:'国内', company:'讯海科技',   zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'/', deadline:null, note:'' },
+  { id:3, region:'国内', company:'科技公司',   zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'进行中',jwe3:'已完成', owner:'', deadline:null, note:'待定' },
+  { id:4, region:'国内', company:'仓储部',     zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'/', deadline:null, note:'岗位性质特殊，已搭建未使用' },
+  { id:5, region:'国内', company:'OPPO云南',  zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'郭晨凯', deadline:'2026-06-30', note:'待增加零售-电商序列' },
+  { id:6, region:'国内', company:'云南亮创',   zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'郭晨凯', deadline:'2026-06-30', note:'待增加零售-电商序列；价值评估26年待搭建' },
+  { id:7, region:'国内', company:'济南亮创',   zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'郭晨凯', deadline:'2026-06-30', note:'待增加零售-电商序列；价值评估26年待搭建' },
+  { id:8, region:'国内', company:'济南新项目', zrz1:'待启动',zrz2:'待启动',zrz3:'待启动', jwe1:'待启动',jwe2:'待启动',jwe3:'待启动', owner:'郭晨凯', deadline:'2026-06-30', note:'' },
+  { id:9, region:'国内', company:'vivo云南',  zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'江佩颖、段卫彦', deadline:'2026-06-30', note:'待增加零售-电商序列' },
+  { id:10,region:'国内', company:'深圳泓劲',   zrz1:'已完成',zrz2:'已完成',zrz3:'进行中', jwe1:'已完成',jwe2:'进行中',jwe3:'进行中', owner:'杨亚丹、江佩颖', deadline:'2026-06-30', note:'' },
+  // 海外
+  { id:11,region:'海外', company:'imoo泰国',       zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'郭晨凯', deadline:'2026-05-30', note:'价值评估初稿待最终定稿' },
+  { id:12,region:'海外', company:'vivo泰国',       zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'郭晨凯', deadline:'2026-05-30', note:'最终定稿待确认' },
+  { id:13,region:'海外', company:'vivo缅甸',       zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'已完成', owner:'郭晨凯', deadline:'2026-05-30', note:'待6月出差 完成最终定稿' },
+  { id:14,region:'海外', company:'亮创电器',       zrz1:'待启动',zrz2:'待启动',zrz3:'待启动', jwe1:'待启动',jwe2:'待启动',jwe3:'待启动', owner:'', deadline:'2026-06-30', note:'' },
+  { id:15,region:'海外', company:'亮创酒店及培训拓展', zrz1:'待启动',zrz2:'待启动',zrz3:'待启动', jwe1:'待启动',jwe2:'待启动',jwe3:'待启动', owner:'', deadline:'2026-06-30', note:'' },
+  { id:16,region:'海外', company:'momoyo项目（缅甸）', zrz1:'待启动',zrz2:'待启动',zrz3:'待启动', jwe1:'待启动',jwe2:'待启动',jwe3:'待启动', owner:'', deadline:'2026-06-30', note:'' },
+  { id:17,region:'海外', company:'OPPO印度',       zrz1:'已完成',zrz2:'已完成',zrz3:'进行中', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'杨亚丹 赵睿淳 卢韵如', deadline:'2026-05-30', note:'' },
+  { id:18,region:'海外', company:'vivo越南',       zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'江佩颖', deadline:'2026-05-30', note:'' },
+  { id:19,region:'海外', company:'imoo越南',       zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'江佩颖', deadline:'2026-05-30', note:'' },
+  { id:20,region:'海外', company:'realme印尼',     zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'江佩颖', deadline:'2026-05-30', note:'' },
+  { id:21,region:'海外', company:'OPPO南非',       zrz1:'已完成',zrz2:'已完成',zrz3:'进行中', jwe1:'已完成',jwe2:'进行中',jwe3:'进行中', owner:'江佩颖', deadline:'2026-05-30', note:'' },
+  { id:22,region:'海外', company:'OPPO巴西',       zrz1:'已完成',zrz2:'已完成',zrz3:'进行中', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'江佩颖', deadline:'2026-05-30', note:'' },
+  { id:23,region:'海外', company:'imoo新加坡',     zrz1:'已完成',zrz2:'已完成',zrz3:'已完成', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'杨亚丹 段卫彦', deadline:'2026-05-30', note:'以imoo泰国模版更新' },
+  { id:24,region:'海外', company:'imoo马来西亚',   zrz1:'已完成',zrz2:'已完成',zrz3:'进行中', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'杨亚丹 段卫彦', deadline:'2026-05-30', note:'以imoo泰国模版更新' },
+  { id:25,region:'海外', company:'vivo哥伦比亚',   zrz1:'已完成',zrz2:'已完成',zrz3:'进行中', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'杨亚丹 郭晨凯 徐若晏', deadline:'2026-05-30', note:'' },
+  { id:26,region:'海外', company:'vivo柬埔寨',     zrz1:'已完成',zrz2:'已完成',zrz3:'进行中', jwe1:'已完成',jwe2:'已完成',jwe3:'进行中', owner:'杨亚丹 郭晨凯', deadline:'2026-05-30', note:'' },
+];
+
+// ===================== 工具函数 =====================
+const SUB_FIELDS = [
+  { key:'zrz1', label:'职业通道', group:'任职资格' },
+  { key:'zrz2', label:'任职资格标准', group:'任职资格' },
+  { key:'zrz3', label:'认证', group:'任职资格' },
+  { key:'jwe1', label:'岗位族划分', group:'岗位价值评估' },
+  { key:'jwe2', label:'价值评估', group:'岗位价值评估' },
+  { key:'jwe3', label:'系数表', group:'岗位价值评估' },
+];
+
+function getAllStatuses(item) {
+  return SUB_FIELDS.map(f => item[f.key]);
+}
+
+function getSubDoneCount(item) {
+  return getAllStatuses(item).filter(s => s === '已完成').length;
+}
+
+function getOverallStatus(item) {
+  const all = getAllStatuses(item);
+  if (all.every(s => s === '已完成')) return '全部完成';
+  if (all.some(s => s === '逾期')) return '逾期';
+  if (all.some(s => s === '进行中' || s === '初稿')) return '进行中';
+  return '待启动';
+}
+
+function getDeadlineMonth(item) {
+  if (!item.deadline) return '长期';
+  const d = new Date(item.deadline);
+  const m = d.getMonth() + 1;
+  if (m <= 4) return '4月(逾期)';
+  if (m === 5) return '5月';
+  return '6月';
+}
+
+function getDeadlineClass(item) {
+  if (!item.deadline) return '';
+  const now = new Date();
+  const d = new Date(item.deadline);
+  const diff = (d - now) / (1000*60*60*24);
+  if (diff < 0) return 'red';
+  if (diff < 10) return 'orange';
+  return 'green';
+}
+
+function statusDot(s) {
+  if (s === '已完成') return '<span class="dot dot-done"></span>';
+  if (s === '进行中' || s === '初稿') return '<span class="dot dot-progress"></span>';
+  if (s === '逾期') return '<span class="dot dot-overdue"></span>';
+  return '<span class="dot dot-todo"></span>';
+}
+
+function statusBadge(s) {
+  const map = {
+    '已完成': '<span class="badge badge-done">✅ 已完成</span>',
+    '进行中': '<span class="badge badge-partial">🔄 进行中</span>',
+    '待启动': '<span class="badge badge-todo">⏳ 待启动</span>',
+    '模板更新': '<span class="badge badge-template">📋 按模板更新</span>',
+    '逾期': '<span class="badge badge-overdue">🔴 逾期</span>',
+    '初稿': '<span class="badge badge-partial">📝 初稿</span>',
+  };
+  return map[s] || `<span class="badge">${s}</span>`;
+}
+
+function monthBadge(m) {
+  if (m === '5月') return '<span class="month-badge month-may">5月</span>';
+  if (m === '6月') return '<span class="month-badge month-jun">6月</span>';
+  if (m === '4月(逾期)') return '<span class="month-badge month-overdue">4月⚠</span>';
+  return '<span style="color:#9ca3af;font-size:12px">长期</span>';
+}
+
+// ===================== 筛选 =====================
+let currentView = 'list';
+let currentTab = 'all';
+
+function getFilteredData() {
+  const region = document.getElementById('filter-region').value;
+  const month = document.getElementById('filter-month').value;
+  const status = document.getElementById('filter-status').value;
+  const search = document.getElementById('search-box').value.toLowerCase();
+
+  return rawData.filter(item => {
+    if (region && item.region !== region) return false;
+    if (month && getDeadlineMonth(item) !== month) return false;
+    if (status) {
+      if (status === '全部完成' && getOverallStatus(item) !== '全部完成') return false;
+      else if (status === '进行中' && getOverallStatus(item) !== '进行中') return false;
+      else if (status === '待启动' && getOverallStatus(item) !== '待启动') return false;
+      else if (status === '逾期' && getOverallStatus(item) !== '逾期') return false;
+    }
+    if (search && !item.company.toLowerCase().includes(search) && !(item.owner||'').toLowerCase().includes(search)) return false;
+    if (currentTab === 'may') return getDeadlineMonth(item) === '5月';
+    if (currentTab === 'jun') return getDeadlineMonth(item) === '6月';
+    if (currentTab === 'overdue') return getOverallStatus(item) === '逾期' || getDeadlineMonth(item) === '4月(逾期)';
+    return true;
+  });
+}
+
+function applyFilters() { render(); }
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['all','may','jun','overdue'][i] === tab);
+  });
+  render();
+}
+
+function switchView(v) {
+  currentView = v;
+  document.querySelectorAll('.btn-group button').forEach((b,i) => {
+    b.classList.toggle('active', ['list','kanban','gantt'][i] === v);
+  });
+  document.querySelectorAll('.view-content').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  render();
+}
+
+// ===================== 渲染 =====================
+function render() {
+  updateSummary();
+  if (currentView === 'list') renderList();
+  else if (currentView === 'kanban') renderKanban();
+  else if (currentView === 'gantt') renderGantt();
+}
+
+function updateSummary() {
+  const total = rawData.length;
+  const totalSubs = total * 6;
+  const doneSubs = rawData.reduce((a, item) => a + getSubDoneCount(item), 0);
+  const mayCount = rawData.filter(d => getDeadlineMonth(d) === '5月').length;
+  const overdueCount = rawData.filter(d => getOverallStatus(d) === '逾期' || getDeadlineMonth(d) === '4月(逾期)').length;
+  const junCount = rawData.filter(d => getDeadlineMonth(d) === '6月').length;
+
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-done').textContent = doneSubs + '/' + totalSubs;
+  document.getElementById('s-inprog').textContent = mayCount;
+  document.getElementById('s-overdue').textContent = overdueCount;
+  document.getElementById('s-jun').textContent = junCount;
+  document.getElementById('header-total').textContent = totalSubs;
+  document.getElementById('header-pending').textContent = totalSubs - doneSubs;
+  document.getElementById('p-done').style.width = (doneSubs/totalSubs*100)+'%';
+  document.getElementById('p-inprog').style.width = (mayCount/total*100)+'%';
+  document.getElementById('p-overdue').style.width = (overdueCount/total*100)+'%';
+  document.getElementById('p-jun').style.width = (junCount/total*100)+'%';
+}
+
+// ===================== 列表视图（合并表头）=====================
+function renderList() {
+  const data = getFilteredData();
+  const body = document.getElementById('list-body');
+
+  // 按月份分组
+  const groups = { '4月(逾期)': [], '5月': [], '6月': [], '长期': [] };
+  data.forEach(item => {
+    const m = getDeadlineMonth(item);
+    if (!groups[m]) groups[m] = [];
+    groups[m].push(item);
+  });
+
+  const groupLabels = {
+    '4月(逾期)': '🔴 4月（已逾期）',
+    '5月': '⏰ 5月截止（2026-05-30）',
+    '6月': '📌 6月截止（2026-06-30）',
+    '长期': '📁 长期/无固定截止'
+  };
+
+  // 构建表格HTML
+  let html = `<table>
+    <thead>
+      <tr class="th-top">
+        <th rowspan="2" style="min-width:160px">公司/项目</th>
+        <th rowspan="2">区域</th>
+        <th rowspan="2">截止</th>
+        <th colspan="3" class="group-header">任职资格</th>
+        <th colspan="3" class="group-header">岗位价值评估</th>
+        <th rowspan="2">负责人</th>
+        <th rowspan="2">操作</th>
+      </tr>
+      <tr class="th-sub">
+        <th>①职业通道</th>
+        <th>②标准</th>
+        <th>③认证</th>
+        <th>①岗位族</th>
+        <th>②评估</th>
+        <th>③系数表</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  Object.keys(groups).forEach(m => {
+    if (!groups[m] || groups[m].length === 0) return;
+    html += `<tr><td colspan="11" class="group-header-bar">${monthBadge(m)} <span>${groupLabels[m]}</span> <span style="margin-left:auto;font-size:12px;color:#6b7280">${groups[m].length} 个项目</span></td></tr>`;
+    groups[m].forEach(item => {
+      const dc = getDeadlineClass(item);
+      const dateStr = item.deadline ? new Date(item.deadline).toLocaleDateString('zh-CN') : '—';
+      const statuses = getAllStatuses(item);
+      html += `<tr class="row">
+        <td><b>${item.company}</b>${item.note ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px">${item.note.substring(0,30)}</div>` : ''}</td>
+        <td><span class="badge" style="background:${item.region==='海外'?'#fef3c7':'#dbeafe'};color:${item.region==='海外'?'#92400e':'#1e40af'}">${item.region}</span></td>
+        <td><span class="deadline ${dc}">${dateStr}</span></td>
+        <td>${statusBadge(statuses[0])}</td>
+        <td>${statusBadge(statuses[1])}</td>
+        <td>${statusBadge(statuses[2])}</td>
+        <td>${statusBadge(statuses[3])}</td>
+        <td>${statusBadge(statuses[4])}</td>
+        <td>${statusBadge(statuses[5])}</td>
+        <td class="responsible">${item.owner||'<span style="color:#ccc">未分配</span>'}</td>
+        <td><button class="btn-edit" onclick="openEdit(${item.id})">编辑</button></td>
+      </tr>`;
+    });
+  });
+
+  html += '</tbody></table>';
+  if (!data.length) html = '<div style="padding:24px;text-align:center;color:#9ca3af">暂无符合条件的项目</div>';
+  body.innerHTML = html;
+}
+
+// ===================== 看板视图 =====================
+function renderKanban() {
+  const data = getFilteredData();
+  const cols = {
+    '全部完成': { label: '✅ 全部完成', color: '#0a9a5a', items: [] },
+    '进行中': { label: '🔄 进行中', color: '#1a56db', items: [] },
+    '待启动': { label: '⏳ 待启动', color: '#e57c00', items: [] },
+    '逾期':   { label: '🔴 逾期紧急', color: '#e02020', items: [] },
+  };
+  data.forEach(item => {
+    const s = getOverallStatus(item);
+    if (cols[s]) cols[s].items.push(item);
+  });
+
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = Object.values(cols).map(col => `
+    <div class="kanban-col">
+      <div class="kanban-col-header" style="color:${col.color}">
+        ${col.label}
+        <span class="kanban-count">${col.items.length}</span>
+      </div>
+      ${col.items.map(item => {
+        const statuses = getAllStatuses(item);
+        return `
+        <div class="kanban-card ${item.region==='国内'?'domestic':'overseas'}">
+          <div class="card-title">${item.company}</div>
+          <div class="card-meta">
+            <span class="badge" style="background:${item.region==='海外'?'#fef3c7':'#dbeafe'};color:${item.region==='海外'?'#92400e':'#1e40af'}">${item.region}</span>
+            <span style="color:${getDeadlineClass(item)==='red'?'#e02020':getDeadlineClass(item)==='orange'?'#e57c00':'#0a9a5a'}">${item.deadline ? new Date(item.deadline).toLocaleDateString('zh-CN') : '—'}</span>
+          </div>
+          ${item.owner ? `<div style="font-size:11px;color:#6b7280;margin-top:4px">👤 ${item.owner}</div>` : ''}
+          <div class="status-dots">${statuses.map(s => statusDot(s)).join('')}</div>
+          ${item.note ? `<div style="font-size:11px;color:#9ca3af;margin-top:3px">${item.note.substring(0,28)}${item.note.length>28?'...':''}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+// ===================== 甘特图（按周，6条横条/项目）=====================
+function renderGantt() {
+  const data = rawData.filter(d => d.deadline);
+  const grid = document.getElementById('gantt-grid');
+
+  // 时间轴：2026-04-01 到 2026-07-31，按周
+  const startDate = new Date('2026-04-01');
+  const endDate = new Date('2026-07-31');
+  const totalDays = (endDate - startDate) / (1000*60*60*24);
+  const totalWeeks = Math.ceil(totalDays / 7);
+
+  const today = new Date();
+  const todayOffset = Math.max(0, Math.min((today - startDate) / (1000*60*60*24) / totalDays * 100, 100));
+
+  // 月份头
+  const months = [];
+  let d = new Date(startDate);
+  while (d < endDate) {
+    const mStart = new Date(d);
+    const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate() - d.getDate() + 1;
+    const weeks = Math.round(daysInMonth / 7 * 10) / 10;
+    months.push({ label: (d.getMonth()+1)+'月', weeks: Math.min(weeks, 5), start: new Date(mStart) });
+    d = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  }
+
+  let monthHtml = '<div class="gantt-month-header">';
+  monthHtml += '<div style="width:200px;min-width:200px;border-right:1px solid #e5e7eb;background:#e8edf5;padding:6px 10px;font-size:12px;font-weight:700;color:#3b4a6b">项目</div>';
+  months.forEach(m => {
+    const pct = (m.weeks / totalWeeks * 100).toFixed(1);
+    monthHtml += `<div class="gantt-month-cell" style="flex:none;width:${pct}%">${m.label}</div>`;
+  });
+  monthHtml += '</div>';
+
+  // 周头
+  let weekHtml = '<div class="gantt-week-header">';
+  weekHtml += '<div style="width:200px;min-width:200px;border-right:1px solid #e5e7eb;"></div>';
+  for (let w = 0; w < totalWeeks; w++) {
+    const wStart = new Date(startDate);
+    wStart.setDate(wStart.getDate() + w * 7);
+    weekHtml += `<div class="gantt-week-cell" style="flex:none;width:${(1/totalWeeks*100).toFixed(2)}%">${wStart.getMonth()+1}/${wStart.getDate()}</div>`;
+  }
+  weekHtml += '</div>';
+
+  // 项目行
+  let rowsHtml = '';
+  data.forEach(item => {
+    const deadline = new Date(item.deadline);
+    const startOffset = Math.max(0, (deadline.getTime() - 30*24*60*60*1000 - startDate.getTime()) / (1000*60*60*24) / totalDays * 100);
+    const width = Math.min(30 / totalDays * 100, 100 - startOffset);
+
+    // 主行
+    const overallStatus = getOverallStatus(item);
+    const color = overallStatus === '全部完成' ? '#10b981' : overallStatus === '进行中' ? '#60a5fa' : overallStatus === '逾期' ? '#ef4444' : '#d1d5db';
+
+    rowsHtml += `
+      <div class="gantt-row" style="cursor:pointer" onclick="toggleSubRows('gantt-sub-${item.id}')">
+        <div class="gantt-label">
+          <span class="toggle-btn" id="toggle-${item.id}">▶</span>
+          <span style="font-weight:600;font-size:12px">${item.company}</span>
+          <span style="font-size:10px;color:#9ca3af;margin-left:4px">${getSubDoneCount(item)}/6</span>
+        </div>
+        <div class="gantt-bars">
+          <div class="gantt-bar" style="left:${startOffset}%;width:${Math.max(width,2)}%;background:${color}">
+            ${width > 8 ? item.company.substring(0,6) : ''}
+          </div>
+        </div>
+      </div>
+      <div class="sub-rows" id="gantt-sub-${item.id}">
+    `;
+
+    // 6个子任务行
+    const subLabels = ['职业通道','任职资格标准','认证','岗位族划分','价值评估','系数表'];
+    const subColors = ['#3b82f6','#6366f1','#8b5cf6','#f59e0b','#f97316','#ef4444'];
+    SUB_FIELDS.forEach((f, i) => {
+      const s = item[f.key];
+      const sc = s === '已完成' ? subColors[i] : s === '进行中' || s === '初稿' ? '#60a5fa' : s === '逾期' ? '#ef4444' : '#d1d5db';
+      rowsHtml += `
+        <div class="gantt-sub-row">
+          <div class="gantt-sub-label">${subLabels[i]}</div>
+          <div class="gantt-sub-bars">
+            <div class="gantt-bar gantt-bar-sm" style="left:${startOffset}%;width:${Math.max(width,2)}%;background:${sc}">
+              ${s === '已完成' ? '✓' : s === '逾期' ? '⚠' : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    rowsHtml += '</div>';
+  });
+
+  grid.innerHTML = monthHtml + weekHtml + '<div style="position:relative">' +
+    `<div class="gantt-today-line" style="position:absolute;left:calc(200px + ${todayOffset}% * (100% - 200px) / 100);width:2px;background:#ef4444;top:0;bottom:0;z-index:10;opacity:0.7"></div>` +
+    rowsHtml + '</div>';
+  grid.innerHTML += `<div style="padding:10px;font-size:11px;color:#9ca3af">▌今日 <span style="color:#ef4444">红线</span> | 点击项目名可展开/折叠子任务 | 条形颜色：<span style="color:#10b981">●已完成</span> <span style="color:#60a5fa">●进行中</span> <span style="color:#d1d5db">●待启动</span> <span style="color:#ef4444">●逾期</span></div>`;
+}
+
+function toggleSubRows(id) {
+  const el = document.getElementById(id);
+  const btn = document.getElementById('toggle-' + id.replace('gantt-sub-',''));
+  if (el.classList.contains('open')) {
+    el.classList.remove('open');
+    btn.textContent = '▶';
+  } else {
+    el.classList.add('open');
+    btn.textContent = '▼';
+  }
+}
+
+// ===================== Edit Modal =====================
+function openEdit(id) {
+  const item = rawData.find(d => d.id === id);
+  if (!item) return;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = item.company;
+  document.getElementById('edit-zrz1').value = item.zrz1;
+  document.getElementById('edit-zrz2').value = item.zrz2;
+  document.getElementById('edit-zrz3').value = item.zrz3;
+  document.getElementById('edit-jwe1').value = item.jwe1;
+  document.getElementById('edit-jwe2').value = item.jwe2;
+  document.getElementById('edit-jwe3').value = item.jwe3;
+  document.getElementById('edit-owner').value = item.owner || '';
+  document.getElementById('edit-note').value = item.note || '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+}
+
+function saveEdit() {
+  const id = parseInt(document.getElementById('edit-id').value);
+  const item = rawData.find(d => d.id === id);
+  if (!item) return;
+  item.zrz1 = document.getElementById('edit-zrz1').value;
+  item.zrz2 = document.getElementById('edit-zrz2').value;
+  item.zrz3 = document.getElementById('edit-zrz3').value;
+  item.jwe1 = document.getElementById('edit-jwe1').value;
+  item.jwe2 = document.getElementById('edit-jwe2').value;
+  item.jwe3 = document.getElementById('edit-jwe3').value;
+  item.owner = document.getElementById('edit-owner').value;
+  item.note = document.getElementById('edit-note').value;
+  closeModal();
+  render();
+}
+
+// Close modal on overlay click
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ===================== 数据持久化 =====================
+const STORAGE_KEY = 'project_tracker_edits';
+const STORAGE_TIME_KEY = 'project_tracker_edits_time';
+
+// 保存到 localStorage
+function saveToLocal() {
+  try {
+    const patch = rawData.map(item => ({
+      id: item.id,
+      zrz1: item.zrz1, zrz2: item.zrz2, zrz3: item.zrz3,
+      jwe1: item.jwe1, jwe2: item.jwe2, jwe3: item.jwe3,
+      owner: item.owner, note: item.note
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(patch));
+    localStorage.setItem(STORAGE_TIME_KEY, new Date().toISOString());
+    document.getElementById('update-time').textContent = '已保存 · ' + new Date().toLocaleString('zh-CN');
+  } catch(e) { console.warn('localStorage保存失败', e); }
+}
+
+// 从 localStorage 恢复编辑（覆盖文件数据）
+function loadFromLocal() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return false;
+    const patch = JSON.parse(saved);
+    patch.forEach(p => {
+      const item = rawData.find(d => d.id === p.id);
+      if (!item) return;
+      item.zrz1 = p.zrz1; item.zrz2 = p.zrz2; item.zrz3 = p.zrz3;
+      item.jwe1 = p.jwe1; item.jwe2 = p.jwe2; item.jwe3 = p.jwe3;
+      item.owner = p.owner; item.note = p.note;
+    });
+    const t = localStorage.getItem(STORAGE_TIME_KEY);
+    if (t) document.getElementById('update-time').textContent = '本地修改 · ' + new Date(t).toLocaleString('zh-CN');
+    return true;
+  } catch(e) { return false; }
+}
+
+// 下载包含最新数据的完整HTML文件
+function downloadHTML() {
+  // 先确保保存到localStorage
+  saveToLocal();
+  // 克隆当前页面HTML，替换rawData为最新版本
+  const htmlContent = document.documentElement.outerHTML;
+  const rawDataStr = 'const rawData = ' + JSON.stringify(rawData, null, 2) + ';';
+  const fullHtml = '<!DOCTYPE html>\n<html ' + htmlContent.substring(htmlContent.indexOf('<html') + 5);
+  // 替换rawData块
+  const regex = /const rawData = \[[\s\S]*?\];/;
+  const newHtml = fullHtml.replace(regex, rawDataStr);
+  const blob = new Blob([newHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'project_tracker_' + new Date().toISOString().slice(0,10) + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// 重置为文件原始数据
+function resetData() {
+  if (!confirm('确定要清除所有本地修改，恢复为文件原始数据吗？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_TIME_KEY);
+  location.reload();
+}
+
+// 修改 saveEdit 增加自动持久化
+const _originalSaveEdit = saveEdit;
+saveEdit = function() {
+  _originalSaveEdit();
+  saveToLocal();
+};
+
+// ===================== Init =====================
+const hasLocal = loadFromLocal();
+if (!hasLocal) document.getElementById('update-time').textContent = new Date().toLocaleString('zh-CN');
+render();
+</script>
+</body>
+</html>
